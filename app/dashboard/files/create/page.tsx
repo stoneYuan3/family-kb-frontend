@@ -1,0 +1,183 @@
+"use client";
+
+import { useState, useRef, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import { api } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Upload, X, FileText } from "lucide-react";
+import type { Item } from "@/types";
+
+export default function CreateFilePage() {
+    const router = useRouter();
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const [title, setTitle] = useState("");
+    const [description, setDescription] = useState("");
+    const [files, setFiles] = useState<File[]>([]);
+    const [error, setError] = useState("");
+    const [submitting, setSubmitting] = useState(false);
+
+    function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+        if (e.target.files && e.target.files.length > 0) {
+            const newFiles = Array.from(e.target.files);
+            setFiles((prev) => [...prev, ...newFiles]);
+        }
+        // Reset input so the same file can be re-selected after removal
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+        }
+    }
+    function removeFile(index: number) {
+        setFiles((prev) => prev.filter((_, i) => i !== index));
+    }
+
+    async function handleSubmit(e: FormEvent) {
+        e.preventDefault()
+        setError("")
+        if (files.length === 0) {
+            setError("At least one file is required.");
+            return;
+        }
+
+        setSubmitting(true);
+        try {
+            // Step 1: Create the item
+            const item = await api.post<Item>("/items", {
+                title,
+                description: description || undefined,
+            });
+
+            // Step 2: Upload each file as a document
+            for (const file of files) {
+                const formData = new FormData();
+                formData.append("file", file);
+                await api.upload(`/items/${item.id}/documents`, formData);
+            }
+
+            router.push("/dashboard/files?status=success");
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to create item");
+        } finally {
+            setSubmitting(false);
+        }
+    }
+
+    function handleCancel() {
+        router.push("/dashboard/files");
+    }
+
+    return (
+        <div className="p-6">
+            <div className="mx-auto max-w-2xl">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-2xl">Create a File</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+                            {/* Title */}
+                            <div className="flex flex-col gap-2">
+                                <Label htmlFor="title">Title *</Label>
+                                <Input
+                                    id="title"
+                                    placeholder="e.g. Dishwasher Manual"
+                                    value={title}
+                                    onChange={(e) => setTitle(e.target.value)}
+                                    required
+                                />
+                            </div>
+
+                            {/* Description */}
+                            <div className="flex flex-col gap-2">
+                                <Label htmlFor="description">Description</Label>
+                                <Textarea
+                                    id="description"
+                                    placeholder="Optional notes about this item"
+                                    value={description}
+                                    onChange={(e) => setDescription(e.target.value)}
+                                    rows={3}
+                                />
+                            </div>
+
+                            {/* File Upload */}
+                            <div className="flex flex-col gap-2">
+                                <Label>Documents *</Label>
+                                <div
+                                    className="flex cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed border-muted-foreground/30 p-6 transition-colors hover:border-muted-foreground/50"
+                                    onClick={() => fileInputRef.current?.click()}
+                                >
+                                    <Upload className="h-8 w-8 text-muted-foreground" />
+                                    <p className="text-sm text-muted-foreground">
+                                        Click to select files
+                                    </p>
+                                    <p className="text-xs text-muted-foreground/70">
+                                        Photos, PDFs, or scanned documents
+                                    </p>
+                                </div>
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    multiple
+                                    accept="image/*,.pdf"
+                                    className="hidden"
+                                    onChange={handleFileChange}
+                                />
+
+                                {/* Selected files list */}
+                                {files.length > 0 && (
+                                    <ul className="mt-2 flex flex-col gap-2">
+                                        {files.map((file, index) => (
+                                            <li
+                                                key={`${file.name}-${index}`}
+                                                className="flex items-center gap-3 rounded-md bg-muted px-3 py-2 text-sm"
+                                            >
+                                                <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                                <span className="min-w-0 flex-1 truncate">
+                                                    {file.name}
+                                                </span>
+                                                <span className="shrink-0 text-xs text-muted-foreground">
+                                                    {(file.size / 1024).toFixed(0)} KB
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeFile(index)}
+                                                    className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-destructive"
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </button>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
+
+                            {/* Error */}
+                            {error && (
+                                <p className="text-sm text-destructive">{error}</p>
+                            )}
+
+                            {/* Actions */}
+                            <div className="flex gap-3 pt-2">
+                                <Button type="submit" disabled={submitting}>
+                                    {submitting ? "Creating..." : "Submit"}
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={handleCancel}
+                                    disabled={submitting}
+                                >
+                                    Cancel
+                                </Button>
+                            </div>
+                        </form>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    );
+}

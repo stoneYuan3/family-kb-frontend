@@ -1,0 +1,38 @@
+export type Role = "admin" | "editor" | "viewer";
+
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  birthday?: string;
+  role: Role;
+  avatar?: string;
+  created_at: string;
+}
+
+export interface Item {
+  id: number;
+  owner_id: number | null;
+  title: string;
+  cover_image?: string;
+  description?: string;
+  created_at: string;
+  updated_at?: string;
+  parent_collection?: number;
+}
+
+export interface Document {
+  id: number;
+  parent_item_id: number;
+  file_url: string;
+  file_type: string;
+  file_size: number;
+}
+
+export interface Collection {
+  id: number;
+  owner_id: number | null;
+  title: string;
+  parent_collection?: number;
+}
