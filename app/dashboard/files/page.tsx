@@ -8,9 +8,9 @@ import { api } from "@/lib/api";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Upload, CheckCircle, X, FileText, Trash2 } from "lucide-react";
-import type { Item } from "@/types";
+import type { Item, Role } from "@/types";
 
-function canDelete(item: Item, user: { id: number; role: string } | null) {
+function canDelete(item: Item, user: { id: number; role: Role } | null) {
   if (!user) return false;
   if (user.role === "admin") return true;
   if (user.role === "editor" && item.owner_id === user.id) return true;
