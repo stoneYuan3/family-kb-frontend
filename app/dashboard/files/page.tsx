@@ -1,46 +1,84 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Upload, CheckCircle, X, FileText, Trash2 } from "lucide-react";
-import type { Item, Role } from "@/types";
-
-function canDelete(item: Item, user: { id: number; role: Role } | null) {
-  if (!user) return false;
-  if (user.role === "admin") return true;
-  if (user.role === "editor" && item.owner_id === user.id) return true;
-  return false;
-}
+import { Upload, CheckCircle, X, Folder, Check } from "lucide-react";
+import type { Item, Collection } from "@/types";
+import { Input } from "@/components/ui/input";
+import { useRouter } from "next/navigation";
+import FolderCard from "./FolderCard";
+import ItemCard from "./ItemCard";
 
 export default function FilesPage() {
     const { user } = useAuth();
     const searchParams = useSearchParams();
     const [notification, setNotification] = useState<string | null>(null);
     const [items, setItems] = useState<Item[]>([]);
+    const [collections, setCollections] = useState<Collection[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [folderTitle, setFolderTitle] = useState("");
+    const router = useRouter();
+
+    const [isCreatingFolder, setIsCreatingFolder] = useState(false);
 
     const canUpload = user?.role === "admin" || user?.role === "editor";
 
-    async function handleDelete(itemId: number) {
+    async function handleDeleteItem(id: number) {
         if (!confirm("Are you sure you want to delete this item?")) return;
         try {
-            await api.delete(`/items/${itemId}`);
-            setItems((prev) => prev.filter((i) => i.id !== itemId));
+            await api.delete(`/items/${id}`);
+            setItems((prev) => prev.filter((i) => i.id !== id));
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to delete item");
         }
     }
 
-    const fetchItems = useCallback(async () => {
+    async function handleDeleteFolder(id: number) {
+        if (!confirm("Are you sure you want to delete this folder?")) return;
         try {
-            const data = await api.get<Item[]>("/items");
-            setItems(data);
+            await api.delete(`/collections/${id}`);
+            setCollections((prev) => prev.filter((c) => c.id !== id));
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to delete folder");
+        }
+    }
+
+    async function handleEditItem(id: number, newTitle: string) {
+        try {
+            await api.put(`/items/${id}`, { title: newTitle });
+            setItems((prev) =>
+                prev.map((i) => (i.id === id ? { ...i, title: newTitle } : i))
+            );
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to edit item");
+            throw err;
+        }
+    }
+
+    async function handleEditFolder(id: number, newTitle: string) {
+        try {
+            await api.put(`/collections/${id}`, { title: newTitle });
+            setCollections((prev) =>
+                prev.map((c) => (c.id === id ? { ...c, title: newTitle } : c))
+            );
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to edit folder");
+            throw err;
+        }
+    }
+
+    const fetchData = useCallback(async () => {
+        try {
+            const files = await api.get<Item[]>("/items");
+            const folders = await api.get<Collection[]>("/collections")
+            setItems(files);
+            setCollections(folders);
             setError("")
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to load items");
@@ -49,9 +87,24 @@ export default function FilesPage() {
         }
     }, [])
 
+    async function handleCreateFolder(e: FormEvent) {
+        e.preventDefault()
+        try {
+            const Collection = await api.post<Collection>("/collections", {
+                title: folderTitle,
+            });
+            setIsCreatingFolder(false)
+            setFolderTitle("")
+            fetchData()
+            router.push("/dashboard/files?status=success");
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to create item");
+        }
+    }
+
     useEffect(() => {
-        fetchItems();
-    }, [fetchItems]);
+        fetchData();
+    }, [fetchData]);
 
     useEffect(() => {
         if (searchParams.get("status") === "success") {
@@ -68,13 +121,23 @@ export default function FilesPage() {
             <div className="mb-4 flex items-center gap-4">
                 <h1 className="text-2xl font-bold">Files</h1>
                 {canUpload && (
-                    <Link
-                        href="/dashboard/files/create"
-                        className={buttonVariants({ variant: "outline", size: "sm", className: "gap-2" })}
-                    >
-                        <Upload className="h-4 w-4" />
-                        Upload
-                    </Link>
+                    <div className="flex gap-2">
+                        <Link
+                            href="/dashboard/files/create"
+                            className={buttonVariants({ variant: "outline", size: "sm", className: "gap-2" })}
+                        >
+                            <Upload className="h-4 w-4" />
+                            Upload
+                        </Link>
+                        <Link
+                            href="#"
+                            className={buttonVariants({ variant: "outline", size: "sm", className: "gap-2" })}
+                            onClick={(e) => { e.preventDefault(); setIsCreatingFolder(true) }}
+                        >
+                            <Upload className="h-4 w-4" />
+                            New Folder
+                        </Link>
+                    </div>
                 )}
             </div>
             {/* Notification */}
@@ -108,23 +171,42 @@ export default function FilesPage() {
                 </div>
             ) : (
                 <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                    {
+                        isCreatingFolder && (
+                            <Card>
+                                <CardContent className="flex items-center gap-3 p-4">
+                                    <Folder className="h-5 w-5 shrink-0 text-muted-foreground" />
+                                    <form onSubmit={handleCreateFolder} className="flex items-center gap-2">
+                                        <Input
+                                            id="title"
+                                            placeholder="e.g. Dishwasher Manual"
+                                            value={folderTitle}
+                                            onChange={(e) => setFolderTitle(e.target.value)}
+                                            required
+                                        />
+                                        {/* replace Yes with a checker icon */}
+                                        <button type="submit"><Check className="h-4 w-4" /></button>
+                                        <button type="button" onClick={() => { setFolderTitle(""); setIsCreatingFolder(false) }}><X className="h-4 w-4" /></button>
+                                    </form>
+                                </CardContent>
+                            </Card>
+                        )
+                    }
+                    {collections.map((folder) => (
+                        <FolderCard
+                            key={folder.id}
+                            folder={folder}
+                            onDelete={handleDeleteFolder}
+                            onEdit={handleEditFolder}
+                        />
+                    ))}
                     {items.map((item) => (
-                        <Card key={item.id} className="transition-colors hover:bg-muted/50">
-                            <CardContent className="flex items-center gap-3 p-4">
-                                <Link href={`/dashboard/files/${item.id}`} className="flex min-w-0 flex-1 items-center gap-3">
-                                    <FileText className="h-5 w-5 shrink-0 text-muted-foreground" />
-                                    <span className="truncate font-medium">{item.title}</span>
-                                </Link>
-                                { canDelete(item, user) && (
-                                    <button
-                                        onClick={() => handleDelete(item.id)}
-                                        className="shrink-0 rounded p-1 text-muted-foreground hover:text-destructive"
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </button>
-                                )}
-                            </CardContent>
-                        </Card>
+                        <ItemCard
+                            key={item.id}
+                            item={item}
+                            onDelete={handleDeleteItem}
+                            onEdit={handleEditItem}
+                        />
                     ))}
                 </div>
             )}
