@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 import FolderCard from "./FolderCard";
 import ItemCard from "./ItemCard";
+import Breadcrumb from "./Breadcrumb";
 
 export default function FilesPage() {
     const { user } = useAuth();
@@ -28,6 +29,7 @@ export default function FilesPage() {
     const [isCreatingFolder, setIsCreatingFolder] = useState(false);
 
     const canUpload = user?.role === "admin" || user?.role === "editor";
+    const folderId = searchParams.get("folder");
 
     async function handleDeleteItem(id: number) {
         if (!confirm("Are you sure you want to delete this item?")) return;
@@ -73,43 +75,43 @@ export default function FilesPage() {
         }
     }
 
-    const fetchData = useCallback(async () => {
-        try {
-            const files = await api.get<Item[]>("/items");
-            const folders = await api.get<Collection[]>("/collections")
-            setItems(files);
-            setCollections(folders);
-            setError("")
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to load items");
-        } finally {
-            setLoading(false);
-        }
-    }, [])
 
-    async function handleCreateFolder(e: FormEvent) {
-        e.preventDefault()
-        try {
-            const Collection = await api.post<Collection>("/collections", {
-                title: folderTitle,
-            });
-            setIsCreatingFolder(false)
-            setFolderTitle("")
-            fetchData()
-            router.push("/dashboard/files?status=success");
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to create item");
-        }
-    }
+    const fetchData = useCallback(async () => {
+        const q = folderId ?? "null"; // "null" is the backend sentinel
+        const [files, folders] = await Promise.all([
+            api.get<Item[]>(`/items?parent_collection=${q}`),
+            api.get<Collection[]>(`/collections?parent_collection=${q}`),
+        ]);
+        setItems(files);
+        setCollections(folders);
+        setError("");
+        setLoading(false);
+    }, [folderId]);
 
     useEffect(() => {
         fetchData();
     }, [fetchData]);
 
+    async function handleCreateFolder(e: FormEvent) {
+        e.preventDefault();
+        try {
+            await api.post<Collection>("/collections", {
+                title: folderTitle,
+                parent_collection: folderId ? Number(folderId) : null,
+            });
+            setIsCreatingFolder(false);
+            setFolderTitle("");
+            await fetchData();   // refresh current folder view, don't navigate
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to create folder");
+        }
+    }
+
+
     useEffect(() => {
         if (searchParams.get("status") === "success") {
             setNotification("Item created successfully.");
-            window.history.replaceState(null, "", "/dashboard/files");
+            folderId != null ? window.history.replaceState(null, "", `/dashboard/files?folder=${folderId}`): window.history.replaceState(null, "", `/dashboard/files`)
             const timer = setTimeout(() => setNotification(null), 5000);
             return () => clearTimeout(timer);
         }
@@ -119,11 +121,11 @@ export default function FilesPage() {
         <div className="p-6">
             {/* Header */}
             <div className="mb-4 flex items-center gap-4">
-                <h1 className="text-2xl font-bold">Files</h1>
+                <Breadcrumb folderId={folderId} />
                 {canUpload && (
                     <div className="flex gap-2">
                         <Link
-                            href="/dashboard/files/create"
+                            href={folderId ? `/dashboard/files/create?folder=${folderId}` : "/dashboard/files/create"}
                             className={buttonVariants({ variant: "outline", size: "sm", className: "gap-2" })}
                         >
                             <Upload className="h-4 w-4" />
@@ -162,10 +164,12 @@ export default function FilesPage() {
                 <div className="flex min-h-[60vh] items-center justify-center rounded-xl bg-muted">
                     <p className="text-sm text-destructive">{error}</p>
                 </div>
-            ) : items.length === 0 ? (
+            ) : items.length === 0 && collections.length === 0 && !isCreatingFolder ? (
                 <div className="flex min-h-[60vh] items-center justify-center rounded-xl bg-muted">
                     <div className="text-center text-muted-foreground">
-                        <p className="text-lg font-medium">No items yet</p>
+                        <p className="text-lg font-medium">
+                            {folderId ? "This folder is empty" : "No items yet"}
+                        </p>
                         <p className="mt-1 text-sm">Upload documents to see them here.</p>
                     </div>
                 </div>

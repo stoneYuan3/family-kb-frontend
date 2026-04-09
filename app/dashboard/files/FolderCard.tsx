@@ -5,6 +5,7 @@
 // Edit UX matches the "create new folder" card — Input + check/X buttons.
 
 import { useState, type FormEvent } from "react";
+import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Folder, Pencil, Trash2, Check, X } from "lucide-react";
@@ -71,10 +72,13 @@ export default function FolderCard({ folder, onDelete, onEdit }: FolderCardProps
                     </div>
                 ) : (
                     <>
-                        <div className="flex min-w-0 flex-1 items-center gap-3">
+                        <Link
+                            href={`/dashboard/files?folder=${folder.id}`}
+                            className="flex min-w-0 flex-1 items-center gap-3"
+                        >
                             <Folder className="h-5 w-5 shrink-0 text-muted-foreground" />
                             <span className="truncate font-medium">{folder.title}</span>
-                        </div>
+                        </Link>
                         {canModify && (
                             <div className="flex gap-2">
                                 <button

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,8 @@ import type { Item } from "@/types";
 
 export default function CreateFilePage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const folderId = searchParams.get("folder");
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [title, setTitle] = useState("");
@@ -45,10 +47,11 @@ export default function CreateFilePage() {
 
         setSubmitting(true);
         try {
-            // Step 1: Create the item
+            // Step 1: Create the item (include parent_collection if inside a folder)
             const item = await api.post<Item>("/items", {
                 title,
                 description: description || undefined,
+                parent_collection: folderId ? Number(folderId) : undefined,
             });
 
             // Step 2: Upload each file as a document
@@ -58,7 +61,11 @@ export default function CreateFilePage() {
                 await api.upload(`/items/${item.id}/documents`, formData);
             }
 
-            router.push("/dashboard/files?status=success");
+            router.push(
+                folderId
+                    ? `/dashboard/files?folder=${folderId}&status=success`
+                    : "/dashboard/files?status=success"
+            );
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to create item");
         } finally {
@@ -67,7 +74,7 @@ export default function CreateFilePage() {
     }
 
     function handleCancel() {
-        router.push("/dashboard/files");
+        router.push(folderId ? `/dashboard/files?folder=${folderId}` : "/dashboard/files");
     }
 
     return (
