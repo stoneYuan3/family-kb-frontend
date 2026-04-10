@@ -27,9 +27,12 @@ export default function FilesPage() {
     const router = useRouter();
 
     const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+    const [isMovingItem, setIsMovingItem] = useState(false);
+    const [relocateOptions, setRelocateOptions] = useState<Collection[]>([]);
 
     const canUpload = user?.role === "admin" || user?.role === "editor";
     const folderId = searchParams.get("folder");
+    const [movingTarget, setMovingTarget] = useState<Number>()
 
     async function handleDeleteItem(id: number) {
         if (!confirm("Are you sure you want to delete this item?")) return;
@@ -75,6 +78,19 @@ export default function FilesPage() {
         }
     }
 
+    async function handleRelocateOptions(type:string, id:number) {
+        setIsMovingItem(true);
+        setMovingTarget(id)
+        setRelocateOptions([]);
+        try {
+            const result = await api.get<Collection[]>(`/collections/relocate/${type}/${id}`);
+            setRelocateOptions(result);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to fetch relocate options");
+            setIsMovingItem(false);
+        }
+    }
+
 
     const fetchData = useCallback(async () => {
         const q = folderId ?? "null"; // "null" is the backend sentinel
@@ -106,6 +122,9 @@ export default function FilesPage() {
             setError(err instanceof Error ? err.message : "Failed to create folder");
         }
     }
+    async function handleRelocateItem(targetId: number, Destination: number) {
+        
+    }
 
 
     useEffect(() => {
@@ -118,6 +137,39 @@ export default function FilesPage() {
     }, [searchParams]);
 
     return (
+        <>
+        {
+            isMovingItem && (
+                <div className="modal w-full h-full bg-[rgba(40,40,40,0.75)] absolute flex items-center justify-center">
+                    <Card className="w-lg">
+                        <CardContent className="pt-4">
+                            <div className="mb-3 flex items-center justify-between">
+                                <span className="font-medium">Move to...</span>
+                                <button type="button" onClick={() => { setIsMovingItem(false) }}><X className="h-4 w-4" /></button>
+                            </div>
+                            {relocateOptions.length === 0 ? (
+                                <p className="text-sm text-muted-foreground">Loading...</p>
+                            ) : (
+                                <ul className="max-h-64 overflow-y-auto divide-y">
+                                    {relocateOptions.map((col) => (
+                                        <li key={col.id}>
+                                            <button
+                                                type="button"
+                                                className="flex w-full items-center gap-2 px-2 py-2 text-sm hover:bg-muted rounded"
+                                            >
+                                                <Folder className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                                {col.title}
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
+            )
+        }
+        
         <div className="p-6">
             {/* Header */}
             <div className="mb-4 flex items-center gap-4">
@@ -188,7 +240,6 @@ export default function FilesPage() {
                                             onChange={(e) => setFolderTitle(e.target.value)}
                                             required
                                         />
-                                        {/* replace Yes with a checker icon */}
                                         <button type="submit"><Check className="h-4 w-4" /></button>
                                         <button type="button" onClick={() => { setFolderTitle(""); setIsCreatingFolder(false) }}><X className="h-4 w-4" /></button>
                                     </form>
@@ -202,6 +253,7 @@ export default function FilesPage() {
                             folder={folder}
                             onDelete={handleDeleteFolder}
                             onEdit={handleEditFolder}
+                            onRelocate={handleRelocateOptions}
                         />
                     ))}
                     {items.map((item) => (
@@ -210,10 +262,12 @@ export default function FilesPage() {
                             item={item}
                             onDelete={handleDeleteItem}
                             onEdit={handleEditItem}
+                            onRelocate={handleRelocateOptions}
                         />
                     ))}
                 </div>
             )}
         </div>
+        </>
     )
 } 

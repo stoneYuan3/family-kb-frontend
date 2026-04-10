@@ -93,7 +93,7 @@ export default function DashboardLayout({
             </aside>
 
             {/* Main content */}
-            <main className="flex-1 bg-muted/40">{children}</main>
+            <main className="flex-1 bg-muted/40 relative">{children}</main>
         </div>
     );
 

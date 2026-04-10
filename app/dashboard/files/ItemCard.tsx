@@ -16,9 +16,10 @@ interface ItemCardProps {
     item: Item;
     onDelete: (id: number) => void;
     onEdit: (id: number, newTitle: string) => Promise<void>;
+    onRelocate: any;
 }
 
-export default function ItemCard({ item, onDelete, onEdit }: ItemCardProps) {
+export default function ItemCard({ item, onDelete, onEdit, onRelocate }: ItemCardProps) {
     const { user } = useAuth();
     const [isEditing, setIsEditing] = useState(false);
     const [editTitle, setEditTitle] = useState(item.title);
@@ -81,6 +82,13 @@ export default function ItemCard({ item, onDelete, onEdit }: ItemCardProps) {
                         </Link>
                         {canModify && (
                             <div className="flex gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => { onRelocate("item", item.id) }}
+                                    className="shrink-0 rounded p-1 text-muted-foreground hover:text-destructive"
+                                >
+                                    <span>M</span>
+                                </button>
                                 <button
                                     onClick={() => setIsEditing(true)}
                                     className="shrink-0 rounded p-1 text-muted-foreground hover:text-foreground"

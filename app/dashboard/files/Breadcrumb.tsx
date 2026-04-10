@@ -39,6 +39,7 @@ export default function Breadcrumb({ folderId }: BreadcrumbProps) {
             .finally(() => {
                 if (!cancelled) setLoading(false);
             });
+            
         return () => {
             cancelled = true;
         };
