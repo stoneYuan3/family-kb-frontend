@@ -123,11 +123,23 @@ export default function FilesPage() {
     }
     
     async function handleRelocateItem(item:{ id: number; type: string }, itemDest: number | null) {
-        console.log(`${item.type} ${item.id} to ${itemDest}`);
+        const dest = itemDest ?? 'null'; // 'null' sentinel = move to root
         try {
-            
+            switch(item.type) {
+                case "folder":
+                    await api.put<Collection>(`/collections/relocate/${item.id}/${dest}`);
+                    break;
+                case "item":
+                    await api.put<Item>(`/items/relocate/${item.id}/${dest}`);
+                    break;
+                default:
+                    setError(`Unknown type: ${item.type}`);
+                    return;
+            }
+            setIsMovingItem(false);
+            await fetchData();
         } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to create folder");
+            setError(err instanceof Error ? err.message : "Failed to move item");
         }
     }
 
