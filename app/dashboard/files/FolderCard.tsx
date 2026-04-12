@@ -84,7 +84,7 @@ export default function FolderCard({ folder, onDelete, onEdit, onRelocate }: Fol
                             <div className="flex gap-2">
                                 <button
                                     type="button"
-                                    onClick={() => {onRelocate("folder",folder.id)}}
+                                    onClick={() => {onRelocate(folder.id, "folder")}}
                                     className="shrink-0 rounded p-1 text-muted-foreground hover:text-destructive"
                                 >
                                     <span>M</span>

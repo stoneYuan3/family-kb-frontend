@@ -84,7 +84,7 @@ export default function ItemCard({ item, onDelete, onEdit, onRelocate }: ItemCar
                             <div className="flex gap-2">
                                 <button
                                     type="button"
-                                    onClick={() => { onRelocate("item", item.id) }}
+                                    onClick={() => { onRelocate(item.id,"item") }}
                                     className="shrink-0 rounded p-1 text-muted-foreground hover:text-destructive"
                                 >
                                     <span>M</span>

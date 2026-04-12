@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Upload, CheckCircle, X, Folder, Check } from "lucide-react";
+import { Upload, CheckCircle, X, Folder, Check, Home } from "lucide-react";
 import type { Item, Collection } from "@/types";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
@@ -32,7 +32,7 @@ export default function FilesPage() {
 
     const canUpload = user?.role === "admin" || user?.role === "editor";
     const folderId = searchParams.get("folder");
-    const [movingTarget, setMovingTarget] = useState<Number>()
+    const [itemToMove, setItemToMove] = useState<{ id: number; type: string }>();
 
     async function handleDeleteItem(id: number) {
         if (!confirm("Are you sure you want to delete this item?")) return;
@@ -78,9 +78,9 @@ export default function FilesPage() {
         }
     }
 
-    async function handleRelocateOptions(type:string, id:number) {
+    async function handleRelocateOptions(id:number, type:string) {
         setIsMovingItem(true);
-        setMovingTarget(id)
+        setItemToMove({id,type})
         setRelocateOptions([]);
         try {
             const result = await api.get<Collection[]>(`/collections/relocate/${type}/${id}`);
@@ -90,7 +90,6 @@ export default function FilesPage() {
             setIsMovingItem(false);
         }
     }
-
 
     const fetchData = useCallback(async () => {
         const q = folderId ?? "null"; // "null" is the backend sentinel
@@ -122,8 +121,14 @@ export default function FilesPage() {
             setError(err instanceof Error ? err.message : "Failed to create folder");
         }
     }
-    async function handleRelocateItem(targetId: number, Destination: number) {
-        
+    
+    async function handleRelocateItem(item:{ id: number; type: string }, itemDest: number | null) {
+        console.log(`${item.type} ${item.id} to ${itemDest}`);
+        try {
+            
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to create folder");
+        }
     }
 
 
@@ -151,11 +156,24 @@ export default function FilesPage() {
                                 <p className="text-sm text-muted-foreground">Loading...</p>
                             ) : (
                                 <ul className="max-h-64 overflow-y-auto divide-y">
+                                    { folderId != null && (
+                                        <li>
+                                            <button
+                                                type="button"
+                                                className="flex w-full items-center gap-2 px-2 py-2 text-sm hover:bg-muted rounded"
+                                                onClick={() => handleRelocateItem(itemToMove!, null)}
+                                            >
+                                                <Home className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                                Files
+                                            </button>                                           
+                                        </li>
+                                    )}
                                     {relocateOptions.map((col) => (
                                         <li key={col.id}>
                                             <button
                                                 type="button"
                                                 className="flex w-full items-center gap-2 px-2 py-2 text-sm hover:bg-muted rounded"
+                                                onClick={() => handleRelocateItem(itemToMove!, col.id)}
                                             >
                                                 <Folder className="h-4 w-4 shrink-0 text-muted-foreground" />
                                                 {col.title}
