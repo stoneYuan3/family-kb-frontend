@@ -202,13 +202,13 @@ export default function FilesPage() {
         
         <div className="p-6">
             {/* Header */}
-            <div className="mb-4 flex items-center gap-4">
+            <div className="mb-4 flex items-center gap-4 max-[500px]:flex-col max-[500px]:items-start">
                 <Breadcrumb folderId={folderId} />
                 {canUpload && (
                     <div className="flex gap-2">
                         <Link
                             href={folderId ? `/dashboard/files/create?folder=${folderId}` : "/dashboard/files/create"}
-                            className={buttonVariants({ variant: "outline", size: "sm", className: "gap-2" })}
+                            className={`max-[500px]:hidden ${buttonVariants({ variant: "outline", size: "sm", className: "gap-2" })}`}
                         >
                             <Upload className="h-4 w-4" />
                             Upload
@@ -256,7 +256,7 @@ export default function FilesPage() {
                     </div>
                 </div>
             ) : (
-                <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                <div className="grid grid-cols-2 gap-4 max-[500px]:grid-cols-1 md:grid-cols-3 lg:grid-cols-4">
                     {
                         isCreatingFolder && (
                             <Card>

@@ -66,7 +66,7 @@ export default function Breadcrumb({ folderId }: BreadcrumbProps) {
     const current = ancestors[ancestors.length - 1];
 
     return (
-        <div className="flex items-center gap-2 text-2xl font-bold">
+        <div className="flex flex-wrap items-center gap-2 text-2xl font-bold">
             <Link href="/dashboard/files" className="hover:underline">
                 Files
             </Link>
