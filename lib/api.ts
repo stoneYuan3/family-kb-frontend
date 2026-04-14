@@ -62,7 +62,7 @@ export const api = {
     delete<T>(endpoint: string) {
         return request<T>(endpoint, { method: "DELETE" });
     },
-    async upload<T>(endpoint: string, formData: FormData): Promise<T> {
+    async upload<T>(endpoint: string, formData: FormData, method: "POST" | "PUT" = "POST"): Promise<T> {
 
         const headers: Record<string, string> = {};
         if (token) {
@@ -70,7 +70,7 @@ export const api = {
         }
 
         const res = await fetch(`${API_URL}${endpoint}`, {
-            method: "POST",
+            method,
             headers,
             body: formData,
         });
