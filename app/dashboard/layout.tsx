@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Files, Users, LogOut, CloudUpload, Layers } from "lucide-react";
 
 const navItems = [
@@ -91,13 +91,18 @@ export default function DashboardLayout({
                         </button>
                     </div>
 
-                    {/* User greeting */}
+                    {/* User greeting — avatar links to self profile */}
                     <div className="mt-12 flex flex-col items-center gap-3">
-                        <Avatar className="h-20 w-20 border-2 border-white/20">
-                            <AvatarFallback className="bg-white/25 text-2xl text-white">
-                                {initials}
-                            </AvatarFallback>
-                        </Avatar>
+                        <Link href="/dashboard/me">
+                            <Avatar className="h-20 w-20 border-2 border-white/20">
+                                {user.avatar && (
+                                    <AvatarImage src={user.avatar} alt={user.name} />
+                                )}
+                                <AvatarFallback className="bg-white/25 text-2xl text-white">
+                                    {initials}
+                                </AvatarFallback>
+                            </Avatar>
+                        </Link>
                         <span className="text-lg font-medium text-white">
                             Hello, {user.name.split(" ")[0]}
                         </span>
@@ -135,17 +140,22 @@ export default function DashboardLayout({
 
             {/* ── Desktop sidebar (≥ 500px only) ── */}
             <aside className="hidden min-[500px]:flex w-20 flex-col items-center bg-amber-700 py-6 text-white">
-                {/* User avatar + greeting */}
+                {/* User avatar + greeting — links to self profile */}
                 <div className="flex flex-col items-center gap-1">
-                    <Avatar className="h-10 w-10 border-2 border-white/30">
-                        <AvatarFallback className="bg-amber-900 text-sm text-white">
-                            {initials}
-                        </AvatarFallback>
-                    </Avatar>
-                    <div className="mt-1 text-center text-[11px] leading-tight">
-                        <div className="text-amber-200">Hello,</div>
-                        <div className="font-medium">{user.name.split(" ")[0]}</div>
-                    </div>
+                    <Link href="/dashboard/me">
+                        <Avatar className="h-10 w-10 border-2 border-white/30">
+                            {user.avatar && (
+                                <AvatarImage src={user.avatar} alt={user.name} />
+                            )}
+                            <AvatarFallback className="bg-amber-900 text-sm text-white">
+                                {initials}
+                            </AvatarFallback>
+                        </Avatar>
+                        <div className="mt-1 text-center text-[11px] leading-tight">
+                            <div className="text-amber-200">Hello,</div>
+                            <div className="font-medium">{user.name.split(" ")[0]}</div>
+                        </div>
+                    </Link>
                 </div>
 
                 {/* Navigation */}
